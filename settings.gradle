@@ -36,6 +36,7 @@ includeEx ':ktor-client:ktor-client-features:ktor-client-json:ktor-client-json-j
 includeEx ':ktor-client:ktor-client-features:ktor-client-json:ktor-client-gson'
 includeEx ':ktor-client:ktor-client-features:ktor-client-json:ktor-client-jackson'
 includeEx ':ktor-client:ktor-client-features:ktor-client-auth-basic'
+includeEx ':ktor-client:ktor-client-features:ktor-client-auth-digest'
 includeEx ':ktor-client:ktor-client-features:ktor-client-websocket'
 includeEx ':ktor-features:ktor-freemarker'
 includeEx ':ktor-features:ktor-velocity'
