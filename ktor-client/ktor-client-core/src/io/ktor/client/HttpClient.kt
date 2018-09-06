@@ -6,6 +6,7 @@ import io.ktor.client.features.*
 import io.ktor.client.request.*
 import io.ktor.client.response.*
 import io.ktor.http.*
+import io.ktor.http.content.*
 import io.ktor.util.*
 import kotlinx.coroutines.*
 import kotlinx.io.core.*
@@ -38,17 +39,12 @@ fun <T : HttpClientEngineConfig> HttpClient(
 class HttpClient(
     private val engine: HttpClientEngine,
     private val useDefaultTransformers: Boolean = true,
-    private val config: HttpClientConfig<*> = HttpClientConfig<HttpClientEngineConfig>()
+    userConfig: HttpClientConfig<out HttpClientEngineConfig> = HttpClientConfig<HttpClientEngineConfig>()
 ) : Closeable {
     /**
      * Pipeline used for processing all the requests sent by this client.
      */
-    val requestPipeline: HttpRequestPipeline = HttpRequestPipeline().apply {
-        // default send scenario
-        intercept(HttpRequestPipeline.Send) { content ->
-            proceedWith(sendPipeline.execute(context, content))
-        }
-    }
+    val requestPipeline: HttpRequestPipeline = HttpRequestPipeline()
 
     /**
      * Pipeline used for processing all the responses sent by the server.
@@ -98,12 +94,15 @@ class HttpClient(
     val engineConfig: HttpClientEngineConfig = engine.config
 
     init {
-        config.install(HttpPlainText)
-
+        val config = HttpClientConfig<HttpClientEngineConfig>()
         if (useDefaultTransformers) {
+            config.install(HttpPlainText)
             config.install("DefaultTransformers") { defaultTransformers() }
         }
 
+        config.install(HttpSend)
+
+        config += userConfig
         config.install(this)
     }
 

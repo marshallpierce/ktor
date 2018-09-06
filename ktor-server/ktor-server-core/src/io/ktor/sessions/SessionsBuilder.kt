@@ -86,7 +86,7 @@ class CookieIdSessionBuilder<S : Any>(type: KClass<S>) : CookieSessionBuilder<S>
         sessionIdProvider = f
     }
 
-    var sessionIdProvider: () -> String = { nextNonce() }
+    var sessionIdProvider: () -> String = { generateNonce() }
         private set
 }
 
@@ -117,6 +117,6 @@ class HeaderIdSessionBuilder<S : Any>(type: KClass<S>) : HeaderSessionBuilder<S>
         sessionIdProvider = f
     }
 
-    var sessionIdProvider: () -> String = { nextNonce() }
+    var sessionIdProvider: () -> String = { generateNonce() }
         private set
 }

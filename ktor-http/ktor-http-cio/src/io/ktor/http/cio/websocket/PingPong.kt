@@ -60,7 +60,7 @@ fun pinger(
                 }
             }
 
-            val pingMessage = "[ping ${nextNonce()} ping]"
+            val pingMessage = "[ping ${generateNonce()} ping]"
 
             val rc = withTimeoutOrNull(timeoutMillis, TimeUnit.MILLISECONDS) {
                 session.sendPing(buffer, encoder, pingMessage)

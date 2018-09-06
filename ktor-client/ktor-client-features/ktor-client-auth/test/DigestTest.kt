@@ -28,8 +28,10 @@ class DigestTest : TestWithKtor() {
         }
 
         routing {
-            get("/") {
-                call.respondText("ok")
+            authenticate {
+                get("/") {
+                    call.respondText("ok")
+                }
             }
         }
     }
@@ -37,7 +39,7 @@ class DigestTest : TestWithKtor() {
     @Test
     fun testAuth() = clientTest(io.ktor.client.engine.cio.CIO) {
         test { client ->
-            client.get<HttpResponse>("/").use {
+            client.get<HttpResponse>("/", port = serverPort).use {
                 println(it)
             }
         }

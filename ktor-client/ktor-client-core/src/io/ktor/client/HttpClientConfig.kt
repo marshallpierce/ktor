@@ -67,4 +67,12 @@ class HttpClientConfig<T : HttpClientEngineConfig> {
 
         return result
     }
+
+    /**
+     * Install features from [other] client config.
+     */
+    operator fun plusAssign(other: HttpClientConfig<out T>) {
+        features += other.features
+        customInterceptors += customInterceptors
+    }
 }
