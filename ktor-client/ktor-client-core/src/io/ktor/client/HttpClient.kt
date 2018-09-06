@@ -6,7 +6,6 @@ import io.ktor.client.features.*
 import io.ktor.client.request.*
 import io.ktor.client.response.*
 import io.ktor.http.*
-import io.ktor.http.content.*
 import io.ktor.util.*
 import kotlinx.coroutines.*
 import kotlinx.io.core.*
@@ -39,7 +38,7 @@ fun <T : HttpClientEngineConfig> HttpClient(
 class HttpClient(
     private val engine: HttpClientEngine,
     private val useDefaultTransformers: Boolean = true,
-    userConfig: HttpClientConfig<out HttpClientEngineConfig> = HttpClientConfig<HttpClientEngineConfig>()
+    private val userConfig: HttpClientConfig<out HttpClientEngineConfig> = HttpClientConfig()
 ) : Closeable {
     /**
      * Pipeline used for processing all the requests sent by this client.
@@ -93,8 +92,9 @@ class HttpClient(
      */
     val engineConfig: HttpClientEngineConfig = engine.config
 
+    private val config = HttpClientConfig<HttpClientEngineConfig>()
+
     init {
-        val config = HttpClientConfig<HttpClientEngineConfig>()
         if (useDefaultTransformers) {
             config.install(HttpPlainText)
             config.install("DefaultTransformers") { defaultTransformers() }
@@ -117,7 +117,10 @@ class HttpClient(
      * and additionally configured by the [block] parameter.
      */
     fun config(block: HttpClientConfig<*>.() -> Unit): HttpClient = HttpClient(
-        engine, useDefaultTransformers, config.clone().apply(block)
+        engine, useDefaultTransformers, HttpClientConfig<HttpClientEngineConfig>().apply {
+            this += userConfig
+            block()
+        }
     )
 
     /**

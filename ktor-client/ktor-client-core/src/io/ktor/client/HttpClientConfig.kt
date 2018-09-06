@@ -73,6 +73,6 @@ class HttpClientConfig<T : HttpClientEngineConfig> {
      */
     operator fun plusAssign(other: HttpClientConfig<out T>) {
         features += other.features
-        customInterceptors += customInterceptors
+        customInterceptors += other.customInterceptors
     }
 }

@@ -12,34 +12,35 @@ import io.ktor.util.*
 
 interface AuthProvider {
     fun isApplicable(auth: HttpAuthHeader): Boolean
-    fun request(request: HttpRequestBuilder)
+    fun addRequestHeaders(request: HttpRequestBuilder)
 }
 
-class Auth {
-    class Config
+class Auth(
+    val providers: MutableList<AuthProvider> = mutableListOf()
+) {
 
-    companion object Feature : HttpClientFeature<Config, Auth> {
+    companion object Feature : HttpClientFeature<Auth, Auth> {
         override val key: AttributeKey<Auth> = AttributeKey("DigestAuth")
 
-        private val Auth = PipelinePhase("AuthPhase")
-
-        override fun prepare(block: Config.() -> Unit): Auth {
-            return Auth()
+        override fun prepare(block: Auth.() -> Unit): Auth {
+            return Auth().apply(block)
         }
 
         override fun install(feature: Auth, scope: HttpClient) {
-            scope.requestPipeline.insertPhaseBefore(HttpRequestPipeline.Render, Auth)
+            scope.feature(HttpSend)!!.intercept { origin ->
+                var call = origin
 
-            scope.requestPipeline.intercept(Auth) { body ->
-                if (body !is OutgoingContent) return@intercept
+                while (call.response.status != HttpStatusCode.Unauthorized) {
+                    val headerValue = call.response.headers[HttpHeaders.WWWAuthenticate] ?: return@intercept call
+                    val authHeader = parseAuthorizationHeader(headerValue) ?: return@intercept call
+                    val provider = feature.providers.find { it.isApplicable(authHeader) } ?: return@intercept call
 
-                val call = scope.sendPipeline.execute(context, body) as HttpEngineCall
-                if (call.response.status != HttpStatusCode.Unauthorized) {
-                    proceedWith(call)
-                    return@intercept
+                    val request = HttpRequestBuilder()
+                    request.takeFrom(call.request)
+                    provider.addRequestHeaders(request)
                 }
 
-                val authHeader = call.response.headers[HttpHeaders.WWWAuthenticate]
+                return@intercept origin
             }
         }
     }

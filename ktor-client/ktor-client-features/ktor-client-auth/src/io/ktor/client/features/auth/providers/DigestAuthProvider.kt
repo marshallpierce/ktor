@@ -38,7 +38,7 @@ class DigestAuthProvider(
         return true
     }
 
-    override fun request(request: HttpRequestBuilder) {
+    override fun addRequestHeaders(request: HttpRequestBuilder) {
         val methodName = request.method.value
         val url = URLBuilder().takeFrom(request.url).build()
 
@@ -78,4 +78,10 @@ class DigestAuthProvider(
             append(HttpHeaders.Authorization, auth.render())
         }
     }
+}
+
+class DigestAuthConfig {
+}
+
+fun Auth.digest(block: DigestAuthConfig.() -> Unit) {
 }

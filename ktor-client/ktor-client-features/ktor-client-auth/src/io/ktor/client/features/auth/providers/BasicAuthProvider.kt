@@ -23,7 +23,7 @@ class BasicAuthProvider(
         return true
     }
 
-    override fun request(request: HttpRequestBuilder) {
+    override fun addRequestHeaders(request: HttpRequestBuilder) {
         request.headers[HttpHeaders.Authorization] = constructBasicAuthValue(username, password)
     }
 
@@ -53,5 +53,5 @@ class BasicAuthConfig {
     var realm: String? = null
 }
 
-fun Auth.Config.basic(block: BasicAuthConfig.() -> Unit) {
+fun Auth.basic(block: BasicAuthConfig.() -> Unit) {
 }
