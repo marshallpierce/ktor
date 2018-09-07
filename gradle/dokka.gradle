@@ -1,4 +1,11 @@
 
+ext.dokkaExcludes = [
+        'ktor-server',
+        'ktor-samples',
+        'ktor-features',
+        'ktor-client'
+]
+
 apply plugin: 'org.jetbrains.dokka'
 
 dokka {
