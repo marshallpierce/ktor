@@ -1,8 +1,11 @@
 import io.ktor.application.*
 import io.ktor.auth.*
+import io.ktor.client.features.auth.Auth
+import io.ktor.client.features.auth.providers.digest
 import io.ktor.client.request.*
 import io.ktor.client.response.*
 import io.ktor.client.tests.utils.*
+import io.ktor.http.isSuccess
 import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.server.cio.CIO
@@ -38,9 +41,18 @@ class DigestTest : TestWithKtor() {
 
     @Test
     fun testAuth() = clientTest(io.ktor.client.engine.cio.CIO) {
+        config {
+            install(Auth) {
+                digest {
+                    username = "MyName"
+                    password = "Circle Of Life"
+                    realm = "testrealm@host.com"
+                }
+            }
+        }
         test { client ->
-            client.get<HttpResponse>("/", port = serverPort).use {
-                println(it)
+            client.get<HttpResponse>(path = "/", port = serverPort).use {
+                assert(it.status.isSuccess())
             }
         }
     }

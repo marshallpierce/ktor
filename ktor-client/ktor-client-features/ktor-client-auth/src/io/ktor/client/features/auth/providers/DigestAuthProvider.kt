@@ -13,7 +13,7 @@ class DigestAuthProvider(
     val realm: String?,
     val algorithmName: String = "MD5"
 ) : AuthProvider {
-    private val digest: Digest = Digest(algorithmName)
+    private val digest = Digest(algorithmName)
     private val serverNonce = atomic<String?>(null)
     private val qop = atomic<String?>(null)
     private val opaque = atomic<String?>(null)
@@ -39,38 +39,28 @@ class DigestAuthProvider(
     }
 
     override fun addRequestHeaders(request: HttpRequestBuilder) {
-        val methodName = request.method.value
+        val nonceCount = requestCounter.incrementAndGet()
+        val methodName = request.method.value.toUpperCase()
         val url = URLBuilder().takeFrom(request.url).build()
 
         val nonce = serverNonce.value!!
-        val serverOpaque = opaque.value!!
-
-        val credential = digest.build("$username:$realm:$password")
-
-        val HA1 = when (algorithmName) {
-            "MD5-sess" -> digest.build("$credential:$nonce:$clientNonce")
-            else -> credential
-        }
-
+        val serverOpaque = opaque.value
         val actualQop = qop.value
 
-        val HA2 = when (actualQop) {
-            "auth-int" -> digest.build("$methodName:$url:$")
-            else -> digest.build("$methodName:${url.encodedPath}")
-        }
+        val credential = makeDigest("$username:$realm:$password")
 
-        val nonceCount = requestCounter.incrementAndGet()
-        val response = when (actualQop) {
-            "auth-int", "auth" -> digest.build("$HA1:$nonce:$nonceCount:$clientNonce:$actualQop:$HA2")
-            else -> digest.build("$HA1:$nonce:$HA2")
-        }
+        val start = hex(credential)
+        val end = hex(makeDigest("$methodName:${url.encodedPath}"))
+        val tokenSequence = if (actualQop == null) listOf(start, nonce, end) else listOf(start, nonce, nonceCount, clientNonce)
+        val token = makeDigest(tokenSequence.joinToString(":"))
 
         val auth = HttpAuthHeader.Parameterized(AuthScheme.Digest, linkedMapOf<String, String>().apply {
             realm?.let { this["realm"] = it }
-            this["opaque"] = serverOpaque
+            serverOpaque?.let { this["opaque"] = it }
+            this["username"] = username
             this["nonce"] = nonce
             this["cnonce"] = clientNonce
-            this["response"] = hex(response)
+            this["response"] = hex(token)
             this["uri"] = url.encodedPath
         })
 
@@ -78,10 +68,24 @@ class DigestAuthProvider(
             append(HttpHeaders.Authorization, auth.render())
         }
     }
+
+    private val lock = Lock()
+    private fun makeDigest(data: String): ByteArray = lock.use {
+        digest.reset()
+        return@use digest.build(data.toByteArray(Charsets.ISO_8859_1))
+    }
 }
 
 class DigestAuthConfig {
+    var username: String = ""
+    var password: String = ""
+    var realm: String? = null
+    var algorithmName: String = "MD5"
 }
 
 fun Auth.digest(block: DigestAuthConfig.() -> Unit) {
+    val config = DigestAuthConfig().apply(block)
+    with(config) {
+        providers += DigestAuthProvider(username, password, realm, algorithmName)
+    }
 }

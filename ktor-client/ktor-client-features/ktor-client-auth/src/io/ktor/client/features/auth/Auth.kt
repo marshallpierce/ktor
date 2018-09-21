@@ -30,7 +30,7 @@ class Auth(
             scope.feature(HttpSend)!!.intercept { origin ->
                 var call = origin
 
-                while (call.response.status != HttpStatusCode.Unauthorized) {
+                while (call.response.status == HttpStatusCode.Unauthorized) {
                     val headerValue = call.response.headers[HttpHeaders.WWWAuthenticate] ?: return@intercept call
                     val authHeader = parseAuthorizationHeader(headerValue) ?: return@intercept call
                     val provider = feature.providers.find { it.isApplicable(authHeader) } ?: return@intercept call
@@ -38,9 +38,11 @@ class Auth(
                     val request = HttpRequestBuilder()
                     request.takeFrom(call.request)
                     provider.addRequestHeaders(request)
+
+                    call = execute(request)
                 }
 
-                return@intercept origin
+                return@intercept call
             }
         }
     }
