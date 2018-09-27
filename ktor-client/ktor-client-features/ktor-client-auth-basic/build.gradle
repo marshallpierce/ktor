@@ -7,7 +7,7 @@ kotlin {
                 api project(':ktor-client:ktor-client-core')
             }
         }
-        testMain {
+        commonTest {
             dependencies {
                 api project(':ktor-client:ktor-client-cio')
                 api project(':ktor-client:ktor-client-tests')

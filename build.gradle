@@ -50,6 +50,9 @@ allprojects {
             fromPreset(presets.iosArm64, 'iosArm64')
             fromPreset(presets.iosX64, 'iosX64')
             fromPreset(presets.macosX64, 'macosX64')
+            if (System.getProperty("idea.active") == "true") {
+                fromPreset(presets.macosX64, 'native')
+            }
         }
 
         sourceSets {
@@ -114,11 +117,15 @@ allprojects {
                     implementation "org.jetbrains.kotlinx:atomicfu:$atomic_fu_version"
                 }
             }
-            configure([iosArm32Main, iosArm64Main, iosX64Main, macosX64]) {
+            configure([iosArm32Main, iosArm64Main, iosX64Main, macosX64Main]) {
                 dependsOn nativeMain
             }
         }
 
+    }
+
+    configurations {
+        testOutput
     }
 //    apply from: rootProject.file('gradle/publish.gradle')
 
@@ -140,7 +147,14 @@ allprojects {
 //    }
 //
 //    tasks.build.dependsOn(['sourceJar', 'emptyJar'])
+
+    task jarTest(type: Jar, dependsOn: jvmTestClasses) {
+        from kotlin.targets.jvm.compilations.test.output
+        classifier = 'test'
+    }
 }
+
+
 //
 //release {
 //    scmAdapters = [net.researchgate.release.GitAdapter]

@@ -43,7 +43,7 @@ class BasicAuth(val username: String, val password: String) {
 
         fun constructBasicAuthValue(username: String, password: String): String {
             val authString = "$username:$password"
-            val authBuf = encodeBase64(authString.toByteArray(Charsets.ISO_8859_1))
+            val authBuf = authString.encodeBase64()
 
             return "Basic $authBuf"
         }

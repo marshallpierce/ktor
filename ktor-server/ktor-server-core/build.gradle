@@ -7,7 +7,7 @@ kotlin {
                 api project(':ktor-http')
             }
         }
-        testMain {
+        commonTest {
             dependencies {
                 api project(':ktor-http:ktor-http-cio')
                 api project(':ktor-network')
@@ -16,7 +16,7 @@ kotlin {
     }
 }
 
-//artifacts {
-//    testOutput jarTest
-//}
+artifacts {
+    testOutput jarTest
+}
 

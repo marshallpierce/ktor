@@ -8,5 +8,18 @@ kotlin {
                 api project(':ktor-client:ktor-client-core')
             }
         }
+        commonTest.dependencies {
+            api project(':ktor-client:ktor-client-tests')
+        }
+        jvmMain {
+            dependencies {
+                api "org.jetbrains.kotlinx:kotlinx-serialization-runtime:$serialization_version"
+            }
+        }
+        nativeMain {
+            dependencies {
+                api "org.jetbrains.kotlinx:kotlinx-serialization-runtime-native:$serialization_version"
+            }
+        }
     }
 }
