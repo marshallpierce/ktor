@@ -78,6 +78,7 @@ class TestApplicationEngine(
         }
     }
 
+    @UseExperimental(InternalAPI::class)
     fun handleRequest(setup: TestApplicationRequest.() -> Unit): TestApplicationCall {
         val call = createCall(readResponse = true, setup = { processRequest(setup) })
 
@@ -116,7 +117,7 @@ class TestApplicationEngine(
                 pipeline.execute(call)
                 pipelineExecuted.complete(Unit)
             } catch (cause: Throwable) {
-                pipelineExecuted.completeExceptionally(cause)
+                pipelineExecuted.cancel(cause)
             }
         }
         processResponse(call)

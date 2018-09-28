@@ -10,6 +10,7 @@ import java.util.concurrent.*
 import javax.servlet.http.*
 import kotlin.coroutines.*
 
+@UseExperimental(InternalAPI::class)
 abstract class KtorServlet : HttpServlet(), CoroutineScope {
     private val asyncDispatchers = lazy { AsyncDispatchers() }
 
@@ -19,6 +20,7 @@ abstract class KtorServlet : HttpServlet(), CoroutineScope {
     abstract val upgrade: ServletUpgrade
 
     private val servletScope = SupervisedScope("servlet", CoroutineScope(EmptyCoroutineContext))
+
     override val coroutineContext: CoroutineContext get() = servletScope.coroutineContext
 
     override fun destroy() {

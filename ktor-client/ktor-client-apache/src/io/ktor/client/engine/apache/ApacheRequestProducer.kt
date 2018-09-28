@@ -20,13 +20,13 @@ import org.apache.http.nio.*
 import org.apache.http.nio.protocol.*
 import org.apache.http.protocol.*
 import java.nio.ByteBuffer
+import kotlin.coroutines.*
 
 internal class ApacheRequestProducer(
     private val requestData: HttpRequestData,
     private val config: ApacheEngineConfig,
     private val body: OutgoingContent,
-    private val dispatcher: CoroutineDispatcher,
-    private val context: CompletableDeferred<Unit>
+    private val callContext: CoroutineContext
 ) : HttpAsyncRequestProducer {
     private var requestJob: Job? = null
     private val requestChannel = Channel<ByteBuffer>(1)
@@ -45,9 +45,11 @@ internal class ApacheRequestProducer(
             is OutgoingContent.ProtocolUpgrade -> throw UnsupportedContentTypeException(body)
             is OutgoingContent.NoContent -> requestChannel.close()
             is OutgoingContent.ReadChannelContent -> prepareBody(body.readFrom())
-            is OutgoingContent.WriteChannelContent -> prepareBody(writer(Unconfined, autoFlush = true) {
-                body.writeTo(channel)
-            }.channel)
+            is OutgoingContent.WriteChannelContent -> prepareBody(
+                GlobalScope.writer(Dispatchers.Unconfined, autoFlush = true) {
+                    body.writeTo(channel)
+                }.channel
+            )
         }
     }
 
@@ -65,7 +67,6 @@ internal class ApacheRequestProducer(
     override fun failed(cause: Exception) {
         requestChannel.close(cause)
         requestJob?.cancel(cause)
-        context.complete(Unit)
 
         try {
             requestChannel.poll()?.recycle()
@@ -90,7 +91,7 @@ internal class ApacheRequestProducer(
             ioControl.value = null
             try {
                 ioctrl.requestOutput()
-            } catch(cause: Throwable) {
+            } catch (cause: Throwable) {
                 buffer.recycle()
                 throw cause
             }
@@ -112,8 +113,6 @@ internal class ApacheRequestProducer(
 
     override fun close() {
         requestChannel.close()
-        context.complete(Unit)
-
         currentBuffer.value?.recycle()
     }
 
@@ -161,7 +160,7 @@ internal class ApacheRequestProducer(
     }
 
     private fun prepareBody(bodyChannel: ByteReadChannel): Job {
-        val result = launch(dispatcher + context) {
+        val result = GlobalScope.launch(callContext) {
             while (!bodyChannel.isClosedForRead) {
                 val buffer = HttpClientDefaultPool.borrow()
                 try {
@@ -181,8 +180,7 @@ internal class ApacheRequestProducer(
 
         result.invokeOnCompletion { cause ->
             requestChannel.close(cause)
-            if (cause != null) context.completeExceptionally(cause)
-            else context.complete(Unit)
+            if (cause != null) callContext.cancel(cause)
             ioControl.getAndSet(null)?.requestOutput()
         }
 

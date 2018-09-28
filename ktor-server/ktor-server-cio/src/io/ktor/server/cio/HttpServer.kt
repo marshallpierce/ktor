@@ -45,6 +45,7 @@ fun httpServer(settings: HttpServerSettings, parentJob: Job? = null, callDispatc
 /**
  * Start an http server with [settings] invoking [handler] for every request
  */
+@UseExperimental(InternalAPI::class)
 fun CoroutineScope.httpServer(settings: HttpServerSettings,
                               handler: HttpRequestHandler): HttpServer {
     val socket = CompletableDeferred<ServerSocket>()
@@ -59,15 +60,16 @@ fun CoroutineScope.httpServer(settings: HttpServerSettings,
 
     val selector = ActorSelectorManager(coroutineContext)
     val timeout = WeakTimeoutQueue(TimeUnit.SECONDS.toMillis(settings.connectionIdleTimeoutSeconds),
-            Clock.systemUTC(),
-            { TimeoutCancellationException("Connection IDLE") })
+            Clock.systemUTC()
+    ) { TimeoutCancellationException("Connection IDLE") }
 
     val acceptJob = launch(serverJob + CoroutineName("accept-${settings.port}")) {
         aSocket(selector).tcp().bind(InetSocketAddress(settings.host, settings.port)).use { server ->
             socket.complete(server)
 
-            val connectionScope =
-                SupervisedScope("request", CoroutineScope(serverJob + KtorUncaughtExceptionHandler()))
+            val connectionScope = SupervisedScope(
+                "request", CoroutineScope(serverJob + KtorUncaughtExceptionHandler())
+            )
 
             try {
                 while (true) {
@@ -95,7 +97,7 @@ fun CoroutineScope.httpServer(settings: HttpServerSettings,
     }
 
     acceptJob.invokeOnCompletion { t ->
-        t?.let { socket.completeExceptionally(it) }
+        t?.let { socket.cancel(it) }
         serverLatch.complete(Unit)
         timeout.process()
     }
