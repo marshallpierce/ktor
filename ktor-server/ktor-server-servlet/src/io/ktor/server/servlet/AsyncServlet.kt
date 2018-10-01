@@ -22,7 +22,7 @@ open class AsyncServletApplicationCall(
     override val coroutineContext: CoroutineContext
 ) : BaseApplicationCall(application), CoroutineScope {
 
-    override val request: ServletApplicationRequest =
+    override val request: AsyncServletApplicationRequest =
         AsyncServletApplicationRequest(this, servletRequest, coroutineContext + engineContext)
 
     override val response: ServletApplicationResponse = AsyncServletApplicationResponse(
@@ -35,13 +35,21 @@ class AsyncServletApplicationRequest(
     override val coroutineContext: CoroutineContext
 ) : ServletApplicationRequest(call, servletRequest), CoroutineScope {
 
-    private val copyJob by lazy { servletReader(servletRequest.inputStream) }
+    private var upgraded = false
+    private val inputStreamChannel by lazy {
+        if (!upgraded) servletReader(servletRequest.inputStream).channel else ByteReadChannel.Empty
+    }
 
-    override fun receiveChannel(): ByteReadChannel = copyJob.channel
+    override fun receiveChannel(): ByteReadChannel = inputStreamChannel
+
+    @EngineAPI
+    internal fun upgraded() {
+        upgraded = true
+    }
 }
 
 open class AsyncServletApplicationResponse(
-    call: ApplicationCall,
+    call: AsyncServletApplicationCall,
     protected val servletRequest: HttpServletRequest,
     servletResponse: HttpServletResponse,
     private val engineContext: CoroutineContext,
@@ -59,6 +67,7 @@ open class AsyncServletApplicationResponse(
             throw ChannelWriteException("Cannot write HTTP upgrade response", e)
         }
 
+        (call.request as AsyncServletApplicationRequest).upgraded()
         completed = true
 
         servletUpgradeImpl.performUpgrade(upgrade, servletRequest, servletResponse, engineContext, userContext)
