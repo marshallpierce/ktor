@@ -17,7 +17,6 @@ buildscript {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.jetbrains.kotlin:kotlin-allopen:$kotlin_version"
         classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:$bintray_plugin_version"
-        classpath 'net.researchgate:gradle-release:2.4.0'
         classpath "org.jetbrains.dokka:dokka-gradle-plugin:$dokka_version"
         classpath "org.jetbrains.kotlinx:atomicfu-gradle-plugin:$atomic_fu_version"
     }
@@ -40,7 +39,7 @@ allprojects {
         jcenter()
     }
 
-    apply plugin: "kotlin-multiplatform"
+    apply plugin: 'kotlin-multiplatform'
     apply plugin: 'kotlinx-atomicfu'
 
     kotlin {
@@ -50,7 +49,7 @@ allprojects {
             fromPreset(presets.iosArm64, 'iosArm64')
             fromPreset(presets.iosX64, 'iosX64')
             fromPreset(presets.macosX64, 'macosX64')
-            if (System.getProperty("idea.active") == "true") {
+            if (System.getProperty('idea.active') == 'true') {
                 fromPreset(presets.macosX64, 'native')
             }
         }
@@ -78,6 +77,8 @@ allprojects {
             }
             jvmMain {
                 kotlin.srcDir 'jvmMain'
+                resources.srcDir 'resources'
+
                 dependencies {
                     implementation 'org.jetbrains.kotlin:kotlin-stdlib'
                     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlin_version
@@ -97,6 +98,7 @@ allprojects {
             }
             jvmTest {
                 kotlin.srcDir 'jvmTest'
+                resources.srcDir 'test-resources'
                 dependencies {
                     implementation 'org.jetbrains.kotlin:kotlin-test'
                     implementation 'org.jetbrains.kotlin:kotlin-test-junit'
@@ -127,6 +129,18 @@ allprojects {
     configurations {
         testOutput
     }
+
+    configure([compileKotlinJvm, compileTestKotlinJvm]) {
+        kotlinOptions.freeCompilerArgs += ['-Xuse-experimental=kotlin.Experimental']
+    }
+
+    if (project.name != 'ktor-server-core') {
+        compileKotlinJvm.kotlinOptions.freeCompilerArgs += [
+            '-Xuse-experimental=kotlin.Experimental,io.ktor.server.engine.EngineAPI'
+        ]
+    }
+
+
 //    apply from: rootProject.file('gradle/publish.gradle')
 
 //    if (project.parent != null && project.parent.name == 'ktor-server') {
@@ -154,13 +168,12 @@ allprojects {
     }
 }
 
+if (project.hasProperty('teamcity')) {
+    afterEvaluate {
+        tasks.withType(Class.forName('org.gradle.nativeplatform.test.tasks.RunTestExecutable')) {
+            args '--ktest_logger=TEAMCITY'
+        }
+    }
+}
 
-//
-//release {
-//    scmAdapters = [net.researchgate.release.GitAdapter]
-//    git {
-//        requireBranch = 'gradle-build'
-//    }
-//}
-//
 //afterReleaseBuild.dependsOn bintrayUpload

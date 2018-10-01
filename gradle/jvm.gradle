@@ -76,10 +76,4 @@ jar {
     }
 }
 
-compileKotlin {
-    kotlinOptions.freeCompilerArgs += ['-Xuse-experimental=kotlin.Experimental']
-}
 
-compileTestKotlin {
-    kotlinOptions.freeCompilerArgs += ['-Xuse-experimental=kotlin.Experimental']
-}
