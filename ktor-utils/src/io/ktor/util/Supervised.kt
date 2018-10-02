@@ -13,13 +13,15 @@ class SupervisedScope(private val name: String, private val parentScope: Corouti
     }
 }
 
-private class OneWayJob(parent: CoroutineContext) : SupervisorJob(parent) {
+@InternalAPI
+class OneWayJob(parent: CoroutineContext = Job()) : SupervisorJob(parent) {
     override fun onChildFailed(cause: Throwable) {
         // ignore
     }
 }
 
-private abstract class SupervisorJob(parent: CoroutineContext) : AbstractCoroutine<Unit>(parent, true) {
+@InternalAPI
+abstract class SupervisorJob(parent: CoroutineContext) : AbstractCoroutine<Unit>(parent, true) {
     val disposableHandle = parent.get(Job)?.invokeOnCompletion { cause ->
         if (cause != null) {
             super.cancel(cause)
@@ -46,4 +48,5 @@ private abstract class SupervisorJob(parent: CoroutineContext) : AbstractCorouti
     }
 }
 
-private class PoisonException(name: String) : CancellationException("Isolated scope has been cancelled: $name")
+@InternalAPI
+class PoisonException(name: String) : CancellationException("Isolated scope has been cancelled: $name")
