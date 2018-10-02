@@ -1,9 +1,8 @@
-
 ext.dokkaExcludes = [
-        'ktor-server',
-        'ktor-samples',
-        'ktor-features',
-        'ktor-client'
+    'ktor-server',
+    'ktor-samples',
+    'ktor-features',
+    'ktor-client'
 ]
 
 apply plugin: 'org.jetbrains.dokka'
@@ -11,11 +10,17 @@ apply plugin: 'org.jetbrains.dokka'
 dokka {
     outputFormat = 'html'
     outputDirectory = "$buildDir/kdoc"
+
+    reportUndocumented = false
+    kotlinTasks { [compileKotlinJvm] }
 }
 
 task dokkaJavadoc(type: dokka.getClass()) {
     outputFormat = 'javadoc'
     outputDirectory = "$buildDir/javadoc"
+
+    reportUndocumented = false
+    kotlinTasks { [compileKotlinJvm] }
 }
 
 task dokkaWebsite(type: dokka.getClass()) {
